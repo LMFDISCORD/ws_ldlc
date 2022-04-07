@@ -31,32 +31,45 @@ wss.on("connection", (ws,Request) => {
             if(monJson.error){
               console.log("CONNECTION NOK :" + idaccount)
               ws.close()
-        }else{
+            }else{
 
-            ws.on("close",msg =>{
-                console.log("CLOSE: " + idaccount)
-                utilisateurs.delete(idaccount)
-            })
-            
-            let pingInterval = setInterval(() => {
-                ws.ping()
-            }, 3000); 
+                ws.on("close",message =>{
+                    console.log("CLOSE: " + idaccount)
+                    utilisateurs.delete(idaccount)
+                })
 
-            console.log("CONNECTION OK :" + idaccount)
-            controleUtilisateurs = setInterval(() => {
-                if(utilisateurs.has(idaccount)){
-                    let unUtilisateurSupp = utilisateurs.get(idaccount)
-                    unUtilisateurSupp.ws.close()
-                }else{
-                    clearInterval(controleUtilisateurs)
-                    utilisateurs.set(idaccount,new Utilisateur(token,secrettoken,idaccount,ws))
-                }
-            },200)
+                ws.on("message",message =>{
+                    traitementMessage(message.toString(),idaccount)
+                })
+
+                let pingInterval = setInterval(() => {
+                    ws.ping()
+                }, 3000);
+                console.log("CONNECTION OK :" + idaccount)
+                controleUtilisateurs = setInterval(() => {
+                    if(utilisateurs.has(idaccount)){
+                        let unUtilisateurSupp = utilisateurs.get(idaccount)
+                        unUtilisateurSupp.ws.close()
+                    }else{
+                        clearInterval(controleUtilisateurs)
+                        utilisateurs.set(idaccount,new Utilisateur(token,secrettoken,idaccount,ws))
+                    }
+                },200)
         }
     })  
     }
 })
 
+function traitementMessage(message,idaccount){
+    let monMessage = JSON.parse(message)
+    if(monMessage.messageId == 1){
+        for(let unUtilisateur of utilisateurs){
+            if(unUtilisateur.idaccount!=idaccount){
+                unUtilisateur.ws.send(JSON.stringify(monMessage))
+            }
+        }
+    }
+}
 
 verifInterval = setInterval(() => {
     utilisateurs.forEach(unUtilisateur => {
